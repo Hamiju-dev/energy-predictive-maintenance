@@ -172,8 +172,9 @@ def fig_nbm_accuracy(metrics: dict[str, pd.DataFrame]) -> None:
 # ----------------------------------------------------------------------------- anomaly
 def fig_health(scores: dict[str, pd.DataFrame], events: pd.DataFrame, asset, component: str,
                title: str, fname: str, start=None, end=None) -> None:
-    fig, ax = plt.subplots(figsize=(11, 4))
-    for mode, sc in scores.items():
+    fig, (ax, rug) = plt.subplots(2, 1, figsize=(11, 4.6), sharex=True,
+                                  gridspec_kw={"height_ratios": [6, 1], "hspace": 0.08})
+    for k, (mode, sc) in enumerate(scores.items()):
         if component == "any":
             s = pipeline.any_component(sc)
             s = s[s["asset"] == asset].sort_values("date")
@@ -190,8 +191,8 @@ def fig_health(scores: dict[str, pd.DataFrame], events: pd.DataFrame, asset, com
         yy[gap.to_numpy()] = np.nan
         ax.plot(s["date"], yy, color=MODE_COLOR[mode], lw=1.8, label=MODE_LABEL[mode])
         al = s["alarm"].to_numpy()
-        ax.scatter(s["date"][al], np.full(al.sum(), -0.05), transform=ax.get_xaxis_transform(),
-                   marker="s", s=10, color=MODE_COLOR[mode], clip_on=False)
+        rug.scatter(s["date"][al], np.full(al.sum(), k), marker="|", s=50, linewidths=1.5,
+                    color=MODE_COLOR[mode])
     ax.axhline(thr, color=C["ink2"], lw=1, ls="--")
     ax.text(1.0, thr, " alarm\n threshold", transform=ax.get_yaxis_transform(), color=C["ink2"],
             fontsize=8.5, va="center")
@@ -210,9 +211,13 @@ def fig_health(scores: dict[str, pd.DataFrame], events: pd.DataFrame, asset, com
     labels.append("Fault event start (SCADA alarm / outage)")
     ax.legend(handles, labels, loc="upper left", fontsize=9, ncol=2)
     ax.set_ylabel("Health score ÷ threshold")
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+    rug.set_yticks(range(len(scores)), [f"{m} alarm" for m in scores], fontsize=8)
+    rug.set_ylim(-0.7, len(scores) - 0.3)
+    rug.invert_yaxis()
+    rug.grid(axis="y", visible=False)
+    rug.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
     ax.set_title(title)
-    _subtitle(ax, "Score > 1 for 2+ days = alarm (squares under the axis). Blank stretches = no SCADA data.")
+    _subtitle(ax, "Score > 1 for 2+ days in a row = alarm (bottom strip). Blank stretches = no SCADA data.")
     _save(fig, fname)
 
 

@@ -23,8 +23,12 @@ rated_power_kw: 2500
 normal_operation:
   min_power_frac: 0.02          # > 2 % of rated power
   min_wind_speed: 3.0           # m/s
-  exclude_days_before_event: 30 # don't learn from the run-up to a known fault
-  exclude_days_after_event: 7
+  # Keep known fault periods out of training. Temperature alarms here are frequent and
+  # mostly summer-driven, so a long window would delete most hot-weather training data
+  # (30 days kept only 5 % of summer 2012); 7 days keeps 47 %.
+  exclude_days_before_event: 7   # temperature alarms
+  exclude_days_before_outage: 30 # major outages: longer run-up
+  exclude_days_after_event: 3
 
 # Components to monitor. Each signal gets its own normal-behaviour model; the
 # component health score combines the standardised residuals of its signals.

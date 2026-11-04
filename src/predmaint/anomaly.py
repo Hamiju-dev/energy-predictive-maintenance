@@ -47,10 +47,17 @@ def component_scores(signal_daily: list[pd.DataFrame], signals: list[str], cfg: 
 
 
 def calibrate_threshold(scores: pd.DataFrame, calib_mask: pd.Series, quantile: float) -> float:
-    s = scores.loc[calib_mask, "score"].dropna()
+    """Alarm level = median over turbines of each turbine's training-score quantile.
+
+    Pooling all turbines and taking one quantile would let a single turbine that is
+    already faulty during training (it has the highest scores) set the bar for the
+    whole fleet. The median of per-turbine quantiles is robust to that.
+    """
+    s = scores.loc[calib_mask, ["asset", "score"]].dropna()
     if s.empty:
         raise ValueError("no training-period scores to calibrate the alarm threshold")
-    return float(np.quantile(s, quantile))
+    per_asset = s.groupby("asset")["score"].quantile(quantile)
+    return float(np.median(per_asset))
 
 
 def apply_alarms(scores: pd.DataFrame, threshold: float, min_consecutive: int) -> pd.DataFrame:

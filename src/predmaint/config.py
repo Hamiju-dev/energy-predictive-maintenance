@@ -16,8 +16,9 @@ DEFAULTS: dict[str, Any] = {
     "normal_operation": {
         "min_power_frac": 0.02,
         "min_wind_speed": 3.0,
-        "exclude_days_before_event": 30,
-        "exclude_days_after_event": 7,
+        "exclude_days_before_event": 7,
+        "exclude_days_before_outage": 30,
+        "exclude_days_after_event": 3,
     },
     "model": {"mode": "fleet", "lightgbm": {"n_estimators": 300, "learning_rate": 0.05, "verbose": -1}},
     "anomaly": {

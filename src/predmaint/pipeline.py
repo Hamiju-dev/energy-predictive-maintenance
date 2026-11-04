@@ -43,6 +43,27 @@ def _daily_near_event(scores: pd.DataFrame, events: pd.DataFrame, cfg: dict, com
     return near_event_mask(tmp, events, cfg, component)
 
 
+def threshold_and_alarm(cfg: dict, sc: pd.DataFrame, events: pd.DataFrame, comp: str,
+                        quantile: float | None = None) -> tuple[pd.DataFrame, float]:
+    """Calibrate the alarm threshold on healthy training days and apply it."""
+    sp, a = cfg["split"], cfg["anomaly"]
+    sc = sc.drop(columns=["above", "alarm", "threshold"], errors="ignore")
+    calib = (sc["date"] >= sp["train_start"]) & (sc["date"] < sp["train_end"])
+    calib &= ~_daily_near_event(sc, events, cfg, comp).to_numpy()
+    thr = anomaly.calibrate_threshold(sc, calib, quantile or a["threshold_quantile"])
+    sc = anomaly.apply_alarms(sc, thr, a["min_consecutive_days"])
+    sc["component"] = comp
+    return sc, thr
+
+
+def rethreshold(cfg: dict, scores: pd.DataFrame, events: pd.DataFrame,
+                quantile: float | None = None) -> pd.DataFrame:
+    """Re-run only the alarm step on saved scores (no model refit needed)."""
+    parts = [threshold_and_alarm(cfg, sc, events, comp, quantile)[0]
+             for comp, sc in scores.groupby("component")]
+    return pd.concat(parts, ignore_index=True)[scores.columns]
+
+
 @dataclass
 class RunResult:
     mode: str
@@ -84,12 +105,8 @@ def fit_and_score(cfg: dict, df: pd.DataFrame, events: pd.DataFrame, mode: str,
             })
             daily.append(anomaly.daily_signal_scores(df, p, sm.scale, s, op, a["min_samples_per_day"]))
         sc = anomaly.component_scores(daily, spec["signals"], cfg)
-        calib = (sc["date"] >= sp["train_start"]) & (sc["date"] < sp["train_end"])
-        calib &= ~_daily_near_event(sc, events, cfg, comp).to_numpy()
-        thr = anomaly.calibrate_threshold(sc, calib, a["threshold_quantile"])
+        sc, thr = threshold_and_alarm(cfg, sc, events, comp)
         bundle.thresholds[comp] = thr
-        sc = anomaly.apply_alarms(sc, thr, a["min_consecutive_days"])
-        sc["component"] = comp
         all_scores.append(sc[["asset", "date", "component", "score_raw", "score", "threshold", "above", "alarm"]])
         log(f"  [{mode}] {comp:13s} threshold={thr:5.2f}  alarm days={int(sc['alarm'].sum())}")
     return RunResult(mode, bundle, pd.concat(all_scores, ignore_index=True), preds, pd.DataFrame(metrics))
@@ -145,17 +162,9 @@ def operating_curve(cfg: dict, scores: pd.DataFrame, events: pd.DataFrame,
     training scores), so this shows the trade-off an operator would choose from
     without looking at the test faults.
     """
-    sp, a = cfg["split"], cfg["anomaly"]
     rows = []
     for q in quantiles:
-        parts = []
-        for comp, sc in scores.groupby("component"):
-            sc = sc.drop(columns=["above", "alarm", "threshold"], errors="ignore")
-            calib = (sc["date"] >= sp["train_start"]) & (sc["date"] < sp["train_end"])
-            calib &= ~_daily_near_event(sc, events, cfg, comp).to_numpy()
-            thr = anomaly.calibrate_threshold(sc, calib, q)
-            parts.append(anomaly.apply_alarms(sc, thr, a["min_consecutive_days"]))
-        _, summ = evaluate(cfg, pd.concat(parts, ignore_index=True), events)
+        _, summ = evaluate(cfg, rethreshold(cfg, scores, events, q), events)
         t = summ["turbine (any component) vs major outages"]
         th = summ["all thermal-alarm events"]
         rows.append({"quantile": q,

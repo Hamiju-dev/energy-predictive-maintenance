@@ -64,6 +64,8 @@ def near_event_mask(df: pd.DataFrame, events: pd.DataFrame, cfg: dict,
     ev = events if component is None else events[events.component.isin([component, "turbine"])]
     ts = df["timestamp"].to_numpy()
     asset = df["asset"].to_numpy()
+    before_outage = pd.Timedelta(days=no.get("exclude_days_before_outage", no["exclude_days_before_event"]))
     for e in ev.itertuples():
-        mask |= (asset == e.asset) & (ts >= np.datetime64(e.start - before)) & (ts <= np.datetime64(e.end + after))
+        b = before_outage if e.kind == "major_outage" else before
+        mask |= (asset == e.asset) & (ts >= np.datetime64(e.start - b)) & (ts <= np.datetime64(e.end + after))
     return pd.Series(mask, index=df.index)
