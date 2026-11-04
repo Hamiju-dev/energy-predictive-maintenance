@@ -1,0 +1,51 @@
+# Template: run the early-warning pipeline on YOUR wind farm.
+#
+# 1. Export two tables (CSV or Parquet):
+#    a) SCADA: one row per turbine per timestamp (10-min averages are typical).
+#       Needs a timestamp, a turbine id, power, wind speed, ambient temperature,
+#       and the component temperatures you want to monitor.
+#    b) Events (optional, only needed to *evaluate* lead times):
+#       columns <asset_col>, component, start  [, end, kind, description]
+#       component must match a key under `components:` below, or "turbine" for
+#       whole-turbine failures.
+# 2. Copy this file, fill in your column names, then run:
+#       python -m predmaint run   --config configs/my_farm.yaml
+#       python -m predmaint score --config configs/my_farm.yaml --input latest_week.csv --out alarms.csv
+#
+# Requirements: ~1 year of mostly healthy history for training (covers all seasons),
+# and for mode "fleet" at least 3 turbines of the same model.
+
+name: my_farm
+
+data:
+  scada_path: data/my_farm/scada.csv
+  events_path: null                 # or data/my_farm/events.csv
+  timestamp_col: Timestamp
+  asset_col: Turbine
+
+roles:                              # role -> your column name
+  power: ActivePower_kW
+  wind_speed: WindSpeed_ms
+  ambient_temp: AmbientTemp_C
+  rotor_speed: GeneratorRPM         # optional, delete if not available
+
+rated_power_kw: 2000
+
+components:                         # group your temperature columns by component
+  gearbox:
+    signals: [GearboxBearingTemp_C, GearboxOilTemp_C]
+  generator:
+    signals: [GeneratorWindingTemp_C, GeneratorBearingTemp_C]
+
+split:
+  train_start: "2022-01-01"         # healthy reference period
+  train_end: "2023-01-01"
+  test_end: "2024-01-01"
+
+model:
+  mode: fleet                       # fleet (needs >= 3 similar turbines) or self
+
+# Everything below is optional; defaults are in src/predmaint/config.py
+# normal_operation: {min_power_frac: 0.02, min_wind_speed: 3.0}
+# anomaly: {threshold_quantile: 0.99, min_consecutive_days: 2, ewm_halflife_days: 3}
+# evaluation: {warning_window_days: 30}

@@ -1,0 +1,78 @@
+# Pipeline configuration for the Fuhrländer FL2500 demo wind farm.
+# To run the tool on your own data, copy configs/template.yaml instead.
+
+name: fuhrlander
+
+data:
+  scada_path: data/processed/fuhrlander/scada.parquet    # standard SCADA table
+  events_path: data/processed/fuhrlander/events.parquet  # optional fault/event log
+  timestamp_col: timestamp
+  asset_col: turbine_id
+
+# Which column plays which role. Left side = role used by the tool, right side = your column.
+roles:
+  power: power_kw
+  wind_speed: wind_speed
+  rotor_speed: generator_speed_rpm
+  ambient_temp: ambient_temp
+
+# Rated power is used to define "normal operation" and to scale features.
+rated_power_kw: 2500
+
+# Normal operation = turbine producing, data present. Only these rows train the model.
+normal_operation:
+  min_power_frac: 0.02          # > 2 % of rated power
+  min_wind_speed: 3.0           # m/s
+  exclude_days_before_event: 30 # don't learn from the run-up to a known fault
+  exclude_days_after_event: 7
+
+# Components to monitor. Each signal gets its own normal-behaviour model; the
+# component health score combines the standardised residuals of its signals.
+components:
+  gearbox:
+    signals: [gearbox_temp, gearbox_oil_temp, gearbox_bearing_151_temp, gearbox_bearing_152_temp,
+              gearbox_bearing_450_temp, gearbox_bearing_451_temp, gearbox_bearing_452_temp]
+  main_bearing:
+    signals: [main_bearing_1_temp, main_bearing_2_temp]
+  generator:
+    signals: [generator_winding_a_temp, generator_winding_b_temp, generator_winding_c_temp,
+              generator_bearing_de_temp, generator_bearing_nde_temp, generator_coolwater_return_temp]
+  transformer:
+    signals: [transformer_temp]
+  converter:
+    signals: [converter_heatsink_temp, converter_coolwater_return_temp]
+
+# Time split. The model learns "healthy" behaviour on the training period and is
+# then scored, without retraining, on the test period.
+split:
+  train_start: "2012-01-01"
+  train_end: "2013-01-01"
+  test_end: "2015-01-01"
+
+model:
+  # fleet: each turbine is compared with a model trained on its sister turbines
+  #        (leave-one-turbine-out). Catches faults that already exist at the start.
+  # self:  each turbine is compared with its own history (classic NBM).
+  mode: fleet
+  lightgbm:
+    n_estimators: 300
+    learning_rate: 0.05
+    num_leaves: 31
+    min_child_samples: 50
+    subsample: 0.8
+    subsample_freq: 1
+    colsample_bytree: 0.9
+    verbose: -1
+
+anomaly:
+  min_samples_per_day: 36       # >= 6 h of normal operation needed to score a day
+  ewm_halflife_days: 3          # smoothing of the daily health score
+  threshold_quantile: 0.99      # alarm level = this quantile of the training scores
+  min_consecutive_days: 2       # persistence before raising an alarm
+
+evaluation:
+  warning_window_days: 30       # an alarm up to 30 days before an event counts as an early warning
+  min_coverage: 0.5             # events need SCADA data on >= 50 % of the window days to be scored
+
+prediction:
+  horizon_days: 14              # predict "event in the next 14 days"
