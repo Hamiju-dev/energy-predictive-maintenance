@@ -266,6 +266,30 @@ def fig_operating_curve(curves: dict[str, pd.DataFrame]) -> None:
     _save(fig, "09_operating_curve.png")
 
 
+def fig_screening(screen: pd.DataFrame) -> None:
+    """Fleet screening: how much hotter/colder each turbine runs than its sister turbines."""
+    from matplotlib.colors import LinearSegmentedColormap
+    t = screen.groupby(["component", "asset"])["offset_c"].mean().unstack("asset")
+    t = t.loc[[c for c in COMP_COLOR if c in t.index]]
+    cmap = LinearSegmentedColormap.from_list("div", ["#2a78d6", "#f0efec", "#e34948"])
+    lim = max(3.0, float(np.nanmax(np.abs(t.to_numpy()))))
+    fig, ax = plt.subplots(figsize=(7, 3.6))
+    ax.imshow(t.to_numpy(), cmap=cmap, vmin=-lim, vmax=lim, aspect="auto")
+    for i in range(t.shape[0]):
+        for j in range(t.shape[1]):
+            v = t.iat[i, j]
+            ax.text(j, i, f"{v:+.1f}", ha="center", va="center", fontsize=10,
+                    color=C["ink"], fontweight="bold" if abs(v) >= 2 else "normal")
+    ax.set_xticks(range(t.shape[1]), [f"T{a}" for a in t.columns])
+    ax.set_yticks(range(t.shape[0]), [c.replace("_", " ") for c in t.index])
+    ax.grid(False)
+    for sp_ in ax.spines.values():
+        sp_.set_visible(False)
+    ax.set_title("Fleet screening: °C hotter (+) or cooler (−) than sister turbines")
+    _subtitle(ax, "Median model residual in the 2012 training year, averaged over each component's sensors")
+    _save(fig, "12_fleet_screening.png")
+
+
 # ----------------------------------------------------------------------------- markdown
 def _md_table(df: pd.DataFrame) -> str:
     cols = list(df.columns)
@@ -333,6 +357,8 @@ def build(cfg: dict, df: pd.DataFrame, events: pd.DataFrame, modes: list[str]) -
         fig_nbm_example(df, runs[m0]["predictions"], "gearbox_temp", [82, 81], "2014-05-26", 10,
                         "04_nbm_example.png")
         fig_nbm_accuracy({m: runs[m]["nbm_metrics"] for m in model_modes})
+    if "fleet" in runs:
+        fig_screening(runs["fleet"]["screening"])
     scores = {m: runs[m]["scores"] for m in modes}
     fig_health(scores, events, 81, "gearbox", "T81 gearbox: health score vs. its summer overheating alarms",
                "06_health_t81_gearbox.png")

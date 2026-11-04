@@ -71,6 +71,7 @@ class RunResult:
     scores: pd.DataFrame        # daily scores + alarms, all components (column 'component')
     predictions: pd.DataFrame   # 10-min expected values for each signal
     nbm_metrics: pd.DataFrame   # accuracy of each signal model on healthy test data
+    screening: pd.DataFrame     # static offset of each turbine/signal vs. the model (°C)
 
 
 def fit_and_score(cfg: dict, df: pd.DataFrame, events: pd.DataFrame, mode: str,
@@ -85,18 +86,21 @@ def fit_and_score(cfg: dict, df: pd.DataFrame, events: pd.DataFrame, mode: str,
 
     bundle = Bundle(cfg=cfg, mode=mode)
     preds = df[["timestamp", "asset"]].copy()
-    metrics, all_scores = [], []
+    metrics, all_scores, screening = [], [], []
     for comp, spec in cfg["components"].items():
         near = near_event_mask(df, events, cfg, comp)
         train_mask = op & train_period & ~near
         daily = []
         for s in spec["signals"]:
-            sm, p = nbm.fit_predict(df, train_mask, s, feats, mode, cfg["model"]["lightgbm"])
+            sm, p = nbm.fit_predict(df, train_mask, s, feats, mode, cfg["model"]["lightgbm"],
+                                    asset_offset=cfg["model"].get("asset_offset", True))
             bundle.signal_models[s] = sm
             preds[s] = p
             healthy_test = op & test_period & ~near & df[s].notna() & p.notna()
             err = (df[s] - p)[healthy_test]
             y = df.loc[healthy_test, s]
+            for asset, off in sm.offsets.items():
+                screening.append({"component": comp, "signal": s, "asset": asset, "offset_c": off})
             metrics.append({
                 "component": comp, "signal": s, "mae": err.abs().mean(),
                 "rmse": float(np.sqrt((err ** 2).mean())),
@@ -109,7 +113,8 @@ def fit_and_score(cfg: dict, df: pd.DataFrame, events: pd.DataFrame, mode: str,
         bundle.thresholds[comp] = thr
         all_scores.append(sc[["asset", "date", "component", "score_raw", "score", "threshold", "above", "alarm"]])
         log(f"  [{mode}] {comp:13s} threshold={thr:5.2f}  alarm days={int(sc['alarm'].sum())}")
-    return RunResult(mode, bundle, pd.concat(all_scores, ignore_index=True), preds, pd.DataFrame(metrics))
+    return RunResult(mode, bundle, pd.concat(all_scores, ignore_index=True), preds, pd.DataFrame(metrics),
+                     pd.DataFrame(screening))
 
 
 def any_component(scores: pd.DataFrame) -> pd.DataFrame:
@@ -205,12 +210,13 @@ def save_run(cfg: dict, res: RunResult) -> None:
     res.scores.to_parquet(out / f"scores_{res.mode}.parquet", index=False)
     res.predictions.to_parquet(out / f"predictions_{res.mode}.parquet", index=False)
     res.nbm_metrics.to_parquet(out / f"nbm_metrics_{res.mode}.parquet", index=False)
+    res.screening.to_parquet(out / f"screening_{res.mode}.parquet", index=False)
     res.bundle.save(resolve_path("models") / cfg["name"] / f"bundle_{res.mode}.joblib")
 
 
 def load_run(cfg: dict, mode: str) -> dict:
     out = output_dir(cfg)
-    return {k: pd.read_parquet(out / f"{k}_{mode}.parquet") for k in ("scores", "predictions", "nbm_metrics")}
+    return {k: pd.read_parquet(out / f"{k}_{mode}.parquet") for k in ("scores", "predictions", "nbm_metrics", "screening")}
 
 
 def write_json(obj, path: Path) -> None:

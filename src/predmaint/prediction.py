@@ -78,8 +78,8 @@ def run(cfg: dict, mode: str = "fleet") -> tuple[pd.DataFrame, pd.DataFrame]:
     scores = pipeline.load_run(cfg, mode)["scores"]
     H = cfg["prediction"]["horizon_days"]
     X = daily_table(cfg, df, scores, events, H)
-    health = [c for c in X.columns if c.endswith(("_score", "_change_7d", "_max_14d"))] + \
-             ["max_score", "n_components_above_1"]
+    health = [c for c in X.columns if c.endswith(("_score", "_change_7d", "_max_14d"))
+              and c != "max_score"] + ["max_score", "n_components_above_1"]
     sets = {"season": FEATURE_SETS["season"], "health": health, "combined": FEATURE_SETS["season"] + health}
 
     sp = cfg["split"]

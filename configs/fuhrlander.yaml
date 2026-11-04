@@ -58,6 +58,9 @@ model:
   #        (leave-one-turbine-out). Catches faults that already exist at the start.
   # self:  each turbine is compared with its own history (classic NBM).
   mode: fleet
+  # Remove each turbine's static offset (median training residual) so alarms mean
+  # "changed since the training year". The offsets are reported as a fleet screening.
+  asset_offset: true
   lightgbm:
     n_estimators: 300
     learning_rate: 0.05

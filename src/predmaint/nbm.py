@@ -39,6 +39,8 @@ class SignalModel:
     features: list[str]
     models: dict = field(default_factory=dict)  # asset (or ALL) -> fitted model / constant
     scale: float = 1.0  # robust std of out-of-sample training residuals
+    offsets: dict = field(default_factory=dict)  # asset -> static offset vs. model (°C)
+    use_offset: bool = True
 
     def _predict_asset(self, X: pd.DataFrame, asset) -> np.ndarray:
         if self.mode == "baseline":
@@ -51,9 +53,11 @@ class SignalModel:
         return m.predict(X[self.features])
 
     def predict(self, df: pd.DataFrame) -> pd.Series:
+        """Expected value for each row; includes the turbine's static offset if enabled."""
         out = pd.Series(np.nan, index=df.index)
         for asset, idx in df.groupby("asset").groups.items():
-            out.loc[idx] = self._predict_asset(df.loc[idx], asset)
+            off = self.offsets.get(asset, 0.0) if self.use_offset else 0.0
+            out.loc[idx] = self._predict_asset(df.loc[idx], asset) + off
         return out
 
 
@@ -72,13 +76,19 @@ def _robust_scale(resid: pd.Series) -> float:
 
 
 def fit_predict(df: pd.DataFrame, train_mask: pd.Series, signal: str, features: list[str],
-                mode: str, params: dict, n_folds: int = 4) -> tuple[SignalModel, pd.Series]:
+                mode: str, params: dict, n_folds: int = 4,
+                asset_offset: bool = True) -> tuple[SignalModel, pd.Series]:
     """Fit the models for one signal and return predictions for every row of ``df``.
 
     ``train_mask`` marks healthy, normal-operation rows of the training period.
     Rows of the training period get out-of-sample predictions.
+
+    With ``asset_offset`` each turbine's median training residual (its static offset
+    from the model, e.g. sensor placement/calibration or a pre-existing condition) is
+    added to its expected values, so the monitoring residual measures *change* since
+    the training period. The offsets themselves are kept for fleet screening.
     """
-    sm = SignalModel(signal=signal, mode=mode, features=features)
+    sm = SignalModel(signal=signal, mode=mode, features=features, use_offset=asset_offset)
     ok = train_mask & df[signal].notna()
     assets = df["asset"].unique()
     pred = pd.Series(np.nan, index=df.index)
@@ -118,5 +128,10 @@ def fit_predict(df: pd.DataFrame, train_mask: pd.Series, signal: str, features: 
     else:
         raise ValueError(f"unknown mode {mode}")
 
-    sm.scale = _robust_scale((df[signal] - pred)[ok])
+    resid = (df[signal] - pred)[ok]
+    sm.offsets = resid.groupby(df.loc[ok, "asset"]).median().to_dict()
+    if asset_offset:
+        pred = pred + df["asset"].map(sm.offsets).fillna(0.0)
+        resid = (df[signal] - pred)[ok]
+    sm.scale = _robust_scale(resid)
     return sm, pred
