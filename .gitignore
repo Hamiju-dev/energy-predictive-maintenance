@@ -233,3 +233,9 @@ models/
 # Keep the API-key template
 !.env.example
 outputs/
+
+# Dashboard build
+dashboard/node_modules/
+dashboard/dist/
+dashboard/src/data/
+!dashboard/src/kit/lib/

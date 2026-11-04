@@ -45,7 +45,11 @@ src/predmaint/      the tool
   pipeline.py       fit/score/evaluate orchestration, operating curve, Bundle (saved models)
   report.py         figures (reports/figures) + reports/results_<name>.md
   __main__.py       CLI: `python -m predmaint run|score`
-notebooks/          01_eda.ipynb (executed, reads data/processed)
+notebooks/          01_eda.ipynb, 02_model_and_evaluation.ipynb (executed)
+dashboard/          React 19 + Tailwind 4 + Vite front end; src/kit/ = the user's PV UI kit (keep its NOTICE.md:
+                    parts adapted from EasyUI, MIT). Builds to ONE self-contained HTML (vite-plugin-singlefile);
+                    scripts/to-artifact.mjs strips the document wrapper for publishing as a claude.ai artifact.
+                    Data: scripts/export_dashboard_data.py -> dashboard/src/data/ (git-ignored).
 reports/            figures/*.png, results_*.md, metrics_*.json (committed)
 tests/              pytest unit tests + synthetic end-to-end test (no download needed)
 data/ outputs/ models/   git-ignored
@@ -63,6 +67,7 @@ python scripts/prepare_fuhrlander.py     # ~3 min -> data/processed/fuhrlander/{
 python -m predmaint run --config configs/fuhrlander.yaml   # ~10 min: 3 modes, figures, results md
 python -m predmaint.prediction configs/fuhrlander.yaml     # failure-prediction experiment + figure
 pytest -q
+python scripts/export_dashboard_data.py && (cd dashboard && npm ci && npm run build)   # dashboard
 ```
 Score new data with saved models: `python -m predmaint score --config configs/fuhrlander.yaml --input file.parquet --out alarms.csv`.
 

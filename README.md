@@ -168,12 +168,24 @@ python -m predmaint score --config configs/my_farm.yaml --input last_month.csv -
 ```
 You need about a year of mostly healthy history, and at least 3 turbines of the same model for fleet mode.
 
+### Interactive dashboard
+`dashboard/` is a React + Tailwind 4 front end built with my PV UI kit (`dashboard/src/kit/`). You can pick a turbine
+and a component, move the alarm level and see the alarms change, and explore the fleet screening and the events. It builds into
+one self-contained HTML file:
+```bash
+python scripts/export_dashboard_data.py   # after `predmaint run`: results -> dashboard/src/data/
+```
+```bash
+cd dashboard && npm ci && npm run build   # -> dashboard/dist/index.html (open it directly)
+```
+
 ## Project structure
 ```
 configs/        fuhrlander.yaml (demo) · template.yaml (your data)
 scripts/        download_data.py · prepare_fuhrlander.py (dataset adapter)
 src/predmaint/  config · data · features · nbm (models) · anomaly · evaluation · prediction · pipeline · report · CLI
 notebooks/      01_eda · 02_model_and_evaluation
+dashboard/      React + Tailwind front end (PV UI kit), builds to one HTML file
 reports/        figures/ · results and metrics (generated)
 tests/          unit tests + synthetic end-to-end test
 ```
