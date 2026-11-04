@@ -80,3 +80,30 @@ def test_false_alarm_classification():
     summ = evaluation.summarise(pd.DataFrame(columns=evaluation.EVENT_COLUMNS), eps, n_asset_days=365)
     assert summ["false_alarm_episodes"] == 1
     assert summ["precision"] == 0.5
+
+
+def test_common_mode_removes_fleet_wide_shift():
+    d = pd.Timestamp("2021-06-01")
+    s = pd.DataFrame({"asset": ["A", "B", "C", "D"], "date": d, "score_raw": [3.0, 3.0, 3.0, 7.0]})
+    out = anomaly.remove_common_mode(s)
+    assert out.tolist() == [0.0, 0.0, 0.0, 4.0]  # only the turbine that deviates from the fleet stays high
+
+
+def test_common_mode_needs_enough_turbines():
+    s = pd.DataFrame({"asset": ["A", "B"], "date": pd.Timestamp("2021-06-01"), "score_raw": [3.0, 5.0]})
+    assert anomaly.remove_common_mode(s).tolist() == [3.0, 5.0]
+
+
+def test_fleet_wide_flag():
+    ev = pd.DataFrame({"asset": ["A", "B", "C"], "component": ["g", "g", "g"],
+                       "start": pd.to_datetime(["2021-07-01", "2021-07-02", "2021-09-01"])})
+    assert evaluation.flag_fleet_wide(ev).tolist() == [True, True, False]
+
+
+def test_threshold_ignores_single_outlier_turbine():
+    rng = np.random.default_rng(0)
+    rows = [pd.DataFrame({"asset": a, "score": rng.normal(5 if a == "BAD" else 0, 1, 365)})
+            for a in ["A", "B", "C", "BAD"]]
+    s = pd.concat(rows, ignore_index=True)
+    thr = anomaly.calibrate_threshold(s, pd.Series(True, index=s.index), 0.99)
+    assert thr < 3.5  # a pooled quantile would be ~7, set by the faulty turbine

@@ -19,7 +19,20 @@ import pandas as pd
 
 
 EVENT_COLUMNS = ["asset", "component", "kind", "start", "description", "coverage", "scorable",
-                 "caught", "lead_days", "max_score_in_window"]
+                 "caught", "lead_days", "max_score_in_window", "fleet_wide"]
+
+
+def flag_fleet_wide(events: pd.DataFrame, days: int = 2) -> pd.Series:
+    """True if another turbine had an event of the same component within +-``days``.
+
+    Such events (e.g. every gearbox hitting its temperature limit on a hot day) are
+    weather/design driven, not a developing fault of one turbine.
+    """
+    flags = []
+    for e in events.itertuples():
+        other = events[(events["asset"] != e.asset) & (events["component"] == e.component)]
+        flags.append(bool(((other["start"] - e.start).abs() <= pd.Timedelta(days=days)).any()))
+    return pd.Series(flags, index=events.index, dtype=bool)
 
 
 def alarm_episodes(scores: pd.DataFrame, max_gap_days: int = 3) -> pd.DataFrame:
@@ -48,6 +61,7 @@ def score_events(events: pd.DataFrame, scores: pd.DataFrame, window_days: int,
             "caught": bool(s["alarm"].any()),
             "lead_days": (start - first).days if pd.notna(first) else np.nan,
             "max_score_in_window": s["score"].max() if len(s) else np.nan,
+            "fleet_wide": bool(getattr(e, "fleet_wide", False)),
         })
     return pd.DataFrame(rows, columns=EVENT_COLUMNS)
 

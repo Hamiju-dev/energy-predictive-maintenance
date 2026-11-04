@@ -37,11 +37,31 @@ def component_scores(signal_daily: list[pd.DataFrame], signals: list[str], cfg: 
         return pd.DataFrame(columns=["asset", "date", "score_raw", "score"])
     vals = out[signals]
     out["score_raw"] = vals.max(axis=1) if a.get("aggregate") == "max" else vals.mean(axis=1)
-    out = out.dropna(subset=["score_raw"]).sort_values(["asset", "date"])
+    out = out.dropna(subset=["score_raw"])
+    return smooth(out, cfg)
+
+
+def remove_common_mode(scores: pd.DataFrame, min_assets: int = 3) -> pd.Series:
+    """Subtract the fleet's daily median score (common-mode rejection).
+
+    Weather the model has not fully captured, fleet-wide ageing or a sensor
+    firmware change move all turbines together; a developing fault moves one.
+    Days with fewer than ``min_assets`` turbines reporting are left unchanged.
+    """
+    g = scores.groupby("date")["score_raw"]
+    med, n = g.transform("median"), g.transform("size")
+    return scores["score_raw"] - med.where(n >= min_assets, 0.0)
+
+
+def smooth(scores: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+    """(Optional common-mode removal) + exponential smoothing -> ``score``."""
+    a = cfg["anomaly"]
+    out = scores.sort_values(["asset", "date"]).copy()
+    base = remove_common_mode(out) if a.get("common_mode") else out["score_raw"]
     hl = pd.Timedelta(days=a["ewm_halflife_days"])
     out["score"] = (
-        out.groupby("asset", group_keys=False)
-        .apply(lambda g: g["score_raw"].ewm(halflife=hl, times=g["date"]).mean(), include_groups=False)
+        base.groupby(out["asset"]).transform(
+            lambda s: s.ewm(halflife=hl, times=out.loc[s.index, "date"]).mean())
     )
     return out.reset_index(drop=True)
 

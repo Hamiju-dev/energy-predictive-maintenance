@@ -60,7 +60,7 @@ data/ outputs/ models/   git-ignored
 pip install -r requirements.txt && pip install --no-deps -e .
 python scripts/download_data.py          # ~355 MB into data/raw/fuhrlander
 python scripts/prepare_fuhrlander.py     # ~3 min -> data/processed/fuhrlander/{scada,events}.parquet
-python -m predmaint run --config configs/fuhrlander.yaml   # ~6 min: 3 modes, figures, results md
+python -m predmaint run --config configs/fuhrlander.yaml   # ~10 min: 3 modes, figures, results md
 python -m predmaint.prediction configs/fuhrlander.yaml     # failure-prediction experiment + figure
 pytest -q
 ```
@@ -68,11 +68,19 @@ Score new data with saved models: `python -m predmaint score --config configs/fu
 
 ## Method decisions (why)
 - Train on 2012 and test on 2013–2014 with a strict time split. Thresholds come from training-period scores only.
-- **Fleet mode** (leave-one-turbine-out) is the main model. A self model learns a turbine's
-  existing fault as "normal" (T81's gearbox runs hot from day one).
-- Training excludes 30 days before and 7 days after known events of that component.
-- Training-period predictions are out-of-sample (LOTO / monthly folds), so thresholds are realistic.
+- **Fleet mode** (leave-one-turbine-out LightGBM) is the main model; self and no-model baseline are for comparison.
+- **Static offsets are separated from change**: each turbine's median training residual is its offset
+  (reported as *fleet screening*, `12_fleet_screening.png`; T81 gearbox +2 °C); monitoring removes it.
+- **Common-mode rejection** (`anomaly.common_mode`): subtract the fleet's daily median score. All turbines'
+  gearbox residuals drifted up together in 2013–14; without this, every turbine alarmed for months.
+- **Threshold** = median over turbines of each turbine's 99th-percentile training score (a faulty turbine
+  in the training fleet must not set the bar). Alarm needs 2 consecutive days above it.
+- Training excludes 7 days before / 3 after temperature alarms and 30 days before major outages
+  (a 30-day window for alarms removed 95 % of summer-2012 data, since every turbine trips on hot days).
+- Events are split into **turbine-specific** (target) and **fleet-wide** (another turbine had the same
+  alarm within ±2 days → weather/design limit, not a developing fault).
 - Events with < 50 % SCADA coverage in the 30-day warning window are "not scorable", not misses.
+- Only ~18 scorable test events: report results as indicative, show the operating curve, avoid over-claiming.
 
 ## Environment notes
 - Cloud network allow-list: GitHub/raw.githubusercontent and PyPI work; zenodo.org, kaggle.com and edp.com are blocked.

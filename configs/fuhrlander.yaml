@@ -73,6 +73,7 @@ model:
 
 anomaly:
   min_samples_per_day: 36       # >= 6 h of normal operation needed to score a day
+  common_mode: true             # subtract the fleet's daily median score (needs >= 3 turbines)
   ewm_halflife_days: 3          # smoothing of the daily health score
   threshold_quantile: 0.99      # alarm level = this quantile of the training scores
   min_consecutive_days: 2       # persistence before raising an alarm

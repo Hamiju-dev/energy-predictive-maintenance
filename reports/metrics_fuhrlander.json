@@ -1,0 +1,236 @@
+{
+  "fleet": {
+    "gearbox": {
+      "events_scorable": 6,
+      "events_caught": 3,
+      "detection_rate": 0.5,
+      "median_lead_days": 30.0,
+      "alarm_episodes": 21,
+      "false_alarm_episodes": 12,
+      "false_alarms_per_turbine_year": 2.75,
+      "precision": 0.429
+    },
+    "main_bearing": {
+      "events_scorable": 4,
+      "events_caught": 1,
+      "detection_rate": 0.25,
+      "median_lead_days": 29.0,
+      "alarm_episodes": 18,
+      "false_alarm_episodes": 14,
+      "false_alarms_per_turbine_year": 3.21,
+      "precision": 0.222
+    },
+    "generator": {
+      "events_scorable": 1,
+      "events_caught": 0,
+      "detection_rate": 0.0,
+      "median_lead_days": null,
+      "alarm_episodes": 21,
+      "false_alarm_episodes": 17,
+      "false_alarms_per_turbine_year": 3.9,
+      "precision": 0.19
+    },
+    "transformer": {
+      "events_scorable": 4,
+      "events_caught": 3,
+      "detection_rate": 0.75,
+      "median_lead_days": 22.0,
+      "alarm_episodes": 33,
+      "false_alarm_episodes": 23,
+      "false_alarms_per_turbine_year": 5.27,
+      "precision": 0.303
+    },
+    "converter": {
+      "events_scorable": 0,
+      "events_caught": 0,
+      "detection_rate": null,
+      "median_lead_days": null,
+      "alarm_episodes": 9,
+      "false_alarm_episodes": 7,
+      "false_alarms_per_turbine_year": 1.6,
+      "precision": 0.222
+    },
+    "turbine (any component) vs major outages": {
+      "events_scorable": 3,
+      "events_caught": 3,
+      "detection_rate": 1.0,
+      "median_lead_days": 9.0,
+      "alarm_episodes": 61,
+      "false_alarm_episodes": 30,
+      "false_alarms_per_turbine_year": 6.87,
+      "precision": 0.508
+    },
+    "all thermal-alarm events": {
+      "events_scorable": 15,
+      "events_caught": 7,
+      "detection_rate": 0.467,
+      "median_lead_days": 29.0
+    },
+    "turbine-specific thermal alarms": {
+      "events_scorable": 8,
+      "events_caught": 4,
+      "median_lead_days": 26.0
+    },
+    "fleet-wide thermal alarms": {
+      "events_scorable": 7,
+      "events_caught": 3,
+      "median_lead_days": 29.0
+    }
+  },
+  "self": {
+    "gearbox": {
+      "events_scorable": 6,
+      "events_caught": 3,
+      "detection_rate": 0.5,
+      "median_lead_days": 30.0,
+      "alarm_episodes": 20,
+      "false_alarm_episodes": 13,
+      "false_alarms_per_turbine_year": 2.98,
+      "precision": 0.35
+    },
+    "main_bearing": {
+      "events_scorable": 4,
+      "events_caught": 1,
+      "detection_rate": 0.25,
+      "median_lead_days": 25.0,
+      "alarm_episodes": 17,
+      "false_alarm_episodes": 14,
+      "false_alarms_per_turbine_year": 3.21,
+      "precision": 0.176
+    },
+    "generator": {
+      "events_scorable": 1,
+      "events_caught": 0,
+      "detection_rate": 0.0,
+      "median_lead_days": null,
+      "alarm_episodes": 16,
+      "false_alarm_episodes": 13,
+      "false_alarms_per_turbine_year": 2.98,
+      "precision": 0.188
+    },
+    "transformer": {
+      "events_scorable": 4,
+      "events_caught": 3,
+      "detection_rate": 0.75,
+      "median_lead_days": 22.0,
+      "alarm_episodes": 21,
+      "false_alarm_episodes": 11,
+      "false_alarms_per_turbine_year": 2.52,
+      "precision": 0.476
+    },
+    "converter": {
+      "events_scorable": 0,
+      "events_caught": 0,
+      "detection_rate": null,
+      "median_lead_days": null,
+      "alarm_episodes": 26,
+      "false_alarm_episodes": 23,
+      "false_alarms_per_turbine_year": 5.27,
+      "precision": 0.115
+    },
+    "turbine (any component) vs major outages": {
+      "events_scorable": 3,
+      "events_caught": 2,
+      "detection_rate": 0.667,
+      "median_lead_days": 25.0,
+      "alarm_episodes": 63,
+      "false_alarm_episodes": 40,
+      "false_alarms_per_turbine_year": 9.17,
+      "precision": 0.365
+    },
+    "all thermal-alarm events": {
+      "events_scorable": 15,
+      "events_caught": 7,
+      "detection_rate": 0.467,
+      "median_lead_days": 25.0
+    },
+    "turbine-specific thermal alarms": {
+      "events_scorable": 8,
+      "events_caught": 4,
+      "median_lead_days": 26.0
+    },
+    "fleet-wide thermal alarms": {
+      "events_scorable": 7,
+      "events_caught": 3,
+      "median_lead_days": 25.0
+    }
+  },
+  "baseline": {
+    "gearbox": {
+      "events_scorable": 6,
+      "events_caught": 3,
+      "detection_rate": 0.5,
+      "median_lead_days": 30.0,
+      "alarm_episodes": 32,
+      "false_alarm_episodes": 23,
+      "false_alarms_per_turbine_year": 5.27,
+      "precision": 0.281
+    },
+    "main_bearing": {
+      "events_scorable": 4,
+      "events_caught": 1,
+      "detection_rate": 0.25,
+      "median_lead_days": 29.0,
+      "alarm_episodes": 15,
+      "false_alarm_episodes": 9,
+      "false_alarms_per_turbine_year": 2.06,
+      "precision": 0.4
+    },
+    "generator": {
+      "events_scorable": 1,
+      "events_caught": 1,
+      "detection_rate": 1.0,
+      "median_lead_days": 30.0,
+      "alarm_episodes": 29,
+      "false_alarm_episodes": 25,
+      "false_alarms_per_turbine_year": 5.73,
+      "precision": 0.138
+    },
+    "transformer": {
+      "events_scorable": 4,
+      "events_caught": 2,
+      "detection_rate": 0.5,
+      "median_lead_days": 19.5,
+      "alarm_episodes": 22,
+      "false_alarm_episodes": 14,
+      "false_alarms_per_turbine_year": 3.21,
+      "precision": 0.364
+    },
+    "converter": {
+      "events_scorable": 0,
+      "events_caught": 0,
+      "detection_rate": null,
+      "median_lead_days": null,
+      "alarm_episodes": 9,
+      "false_alarm_episodes": 8,
+      "false_alarms_per_turbine_year": 1.83,
+      "precision": 0.111
+    },
+    "turbine (any component) vs major outages": {
+      "events_scorable": 3,
+      "events_caught": 3,
+      "detection_rate": 1.0,
+      "median_lead_days": 14.0,
+      "alarm_episodes": 75,
+      "false_alarm_episodes": 42,
+      "false_alarms_per_turbine_year": 9.62,
+      "precision": 0.44
+    },
+    "all thermal-alarm events": {
+      "events_scorable": 15,
+      "events_caught": 7,
+      "detection_rate": 0.467,
+      "median_lead_days": 29.0
+    },
+    "turbine-specific thermal alarms": {
+      "events_scorable": 8,
+      "events_caught": 4,
+      "median_lead_days": 26.0
+    },
+    "fleet-wide thermal alarms": {
+      "events_scorable": 7,
+      "events_caught": 3,
+      "median_lead_days": 29.0
+    }
+  }
+}

@@ -189,7 +189,8 @@ def fig_health(scores: dict[str, pd.DataFrame], events: pd.DataFrame, asset, com
         gap = s["date"].diff().dt.days.fillna(1) > 3
         yy = y.copy().astype(float)
         yy[gap.to_numpy()] = np.nan
-        ax.plot(s["date"], yy, color=MODE_COLOR[mode], lw=1.8, label=MODE_LABEL[mode])
+        ax.plot(s["date"], yy, color=MODE_COLOR[mode], lw=1.8,
+                label=MODE_LABEL[mode] + (" — health score" if len(scores) == 1 else ""))
         al = s["alarm"].to_numpy()
         rug.scatter(s["date"][al], np.full(al.sum(), k), marker="|", s=50, linewidths=1.5,
                     color=MODE_COLOR[mode])
@@ -226,7 +227,7 @@ def fig_lead_times(tables: dict[str, pd.DataFrame], window: int) -> None:
     base = tables[modes[0]]
     base = base[base["scorable"].astype(bool)].sort_values(["kind", "start"]).reset_index(drop=True)
     labels = [f"T{r.asset} {('outage' if r.kind == 'major_outage' else r.component.replace('_', ' '))} "
-              f"{r.start:%b %Y}" for r in base.itertuples()]
+              f"{r.start:%b %Y}{' (fleet-wide)' if r.fleet_wide else ''}" for r in base.itertuples()]
     y = np.arange(len(base))
     h = 0.8 / len(modes)
     fig, ax = plt.subplots(figsize=(8, 0.42 * len(base) + 1.6))
@@ -240,9 +241,9 @@ def fig_lead_times(tables: dict[str, pd.DataFrame], window: int) -> None:
     ax.invert_yaxis()
     ax.set_xlim(0, window + 1)
     ax.set_xlabel(f"Days of early warning before the event (0 = missed; capped at {window})")
-    ax.set_title("Early warning per fault event (test period 2013–2014)")
     ax.grid(axis="y", visible=False)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12 - 1.2 / (0.42 * len(base) + 1.6)), ncol=3, fontsize=8.5)
+    ax.legend(loc="lower left", bbox_to_anchor=(-0.02, 1.0), ncol=3, fontsize=8.5)
+    ax.set_title("Early warning per fault event (test period 2013–2014)", pad=34)
     _save(fig, "08_lead_times.png")
 
 
@@ -309,11 +310,14 @@ def write_results_md(cfg: dict, summaries: dict, tables: dict, metrics: dict, cu
     for m, s in summaries.items():
         t = s["turbine (any component) vs major outages"]
         th = s["all thermal-alarm events"]
+        ts = s["turbine-specific thermal alarms"]
+        fw = s["fleet-wide thermal alarms"]
         rows.append({"mode": m,
                      "outages caught": f"{t['events_caught']}/{t['events_scorable']}",
                      "median lead (outages, days)": t["median_lead_days"],
-                     "temp. alarms caught": f"{th['events_caught']}/{th['events_scorable']}",
-                     "median lead (temp. alarms, days)": th["median_lead_days"],
+                     "turbine-specific temp. alarms caught": f"{ts['events_caught']}/{ts['events_scorable']}",
+                     "median lead (days)": ts["median_lead_days"],
+                     "fleet-wide temp. alarms caught": f"{fw['events_caught']}/{fw['events_scorable']}",
                      "false alarms / turbine-year": t["false_alarms_per_turbine_year"],
                      "alarm precision": t["precision"]})
     out += [_md_table(pd.DataFrame(rows)), ""]
@@ -332,6 +336,8 @@ def write_results_md(cfg: dict, summaries: dict, tables: dict, metrics: dict, cu
         out += [f"### {m}", "", _md_table(tt.drop(columns=["max_score_in_window"]).round(2)), ""]
     out += ["## Operating curve (threshold quantile → result)", ""]
     for m, cv in curves.items():
+        cv = cv.copy()
+        cv["quantile"] = cv["quantile"].map(lambda q: f"{q:.3f}")
         out += [f"### {m}", "", _md_table(cv.round(2)), ""]
     p = resolve_path("reports") / f"results_{cfg['name']}.md"
     p.write_text("\n".join(out))
@@ -360,9 +366,10 @@ def build(cfg: dict, df: pd.DataFrame, events: pd.DataFrame, modes: list[str]) -
     if "fleet" in runs:
         fig_screening(runs["fleet"]["screening"])
     scores = {m: runs[m]["scores"] for m in modes}
-    fig_health(scores, events, 81, "gearbox", "T81 gearbox: health score vs. its summer overheating alarms",
+    main = {m: scores[m] for m in modes[:1]}  # the primary model only, for readability
+    fig_health(main, events, 81, "gearbox", "T81 gearbox: health score vs. its overheating alarms",
                "06_health_t81_gearbox.png")
-    fig_health(scores, events, 84, "any", "T84 whole turbine: health score before its 107-day outage",
+    fig_health(main, events, 84, "any", "T84 whole turbine: health score before its 107-day outage",
                "07_health_t84_outage.png", start=pd.Timestamp("2014-01-01"), end=pd.Timestamp("2014-10-01"))
     fig_lead_times(tables, cfg["evaluation"]["warning_window_days"])
     fig_operating_curve(curves)

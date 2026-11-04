@@ -57,8 +57,15 @@ def threshold_and_alarm(cfg: dict, sc: pd.DataFrame, events: pd.DataFrame, comp:
 
 
 def rethreshold(cfg: dict, scores: pd.DataFrame, events: pd.DataFrame,
-                quantile: float | None = None) -> pd.DataFrame:
-    """Re-run only the alarm step on saved scores (no model refit needed)."""
+                quantile: float | None = None, resmooth: bool = False) -> pd.DataFrame:
+    """Re-run only the alarm step on saved scores (no model refit needed).
+
+    With ``resmooth`` the smoothed score is first rebuilt from ``score_raw`` using the
+    current anomaly settings (common-mode removal, half-life).
+    """
+    if resmooth:
+        scores = pd.concat([anomaly.smooth(sc, cfg) for _, sc in scores.groupby("component")],
+                           ignore_index=True)
     parts = [threshold_and_alarm(cfg, sc, events, comp, quantile)[0]
              for comp, sc in scores.groupby("component")]
     return pd.concat(parts, ignore_index=True)[scores.columns]
@@ -129,6 +136,7 @@ def evaluate(cfg: dict, scores: pd.DataFrame, events: pd.DataFrame) -> tuple[pd.
     W = ev_cfg["warning_window_days"]
     in_test = lambda d, col: (d[col] >= sp["train_end"]) & (d[col] < sp["test_end"])  # noqa: E731
     test_scores = scores[in_test(scores, "date")]
+    events = events.assign(fleet_wide=evaluation.flag_fleet_wide(events))
     test_events = events[in_test(events, "start")]
 
     tables, summary = [], {}
@@ -156,6 +164,12 @@ def evaluate(cfg: dict, scores: pd.DataFrame, events: pd.DataFrame) -> tuple[pd.
         "detection_rate": round(float(sc_t["caught"].mean()), 3) if len(sc_t) else None,
         "median_lead_days": float(sc_t.loc[sc_t["caught"], "lead_days"].median()) if sc_t["caught"].any() else None,
     }
+    for label, fw in (("turbine-specific thermal alarms", False), ("fleet-wide thermal alarms", True)):
+        sub = sc_t[sc_t["fleet_wide"] == fw]
+        summary[label] = {
+            "events_scorable": int(len(sub)), "events_caught": int(sub["caught"].sum()),
+            "median_lead_days": float(sub.loc[sub["caught"], "lead_days"].median()) if sub["caught"].any() else None,
+        }
     return pd.concat(tables, ignore_index=True), summary
 
 

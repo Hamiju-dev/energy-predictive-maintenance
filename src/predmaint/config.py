@@ -27,6 +27,7 @@ DEFAULTS: dict[str, Any] = {
         "threshold_quantile": 0.99,
         "min_consecutive_days": 2,
         "aggregate": "mean",
+        "common_mode": False,
     },
     "evaluation": {"warning_window_days": 30, "min_coverage": 0.5},
     "prediction": {"horizon_days": 14},
