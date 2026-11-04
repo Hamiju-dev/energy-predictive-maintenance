@@ -1,0 +1,9 @@
+@import "./kit/tokens.css";
+
+/* Tailwind scans the app and the kit for class names. */
+@source "./";
+
+/* Range input in the kit's accent. */
+.range {
+  accent-color: var(--accent);
+}

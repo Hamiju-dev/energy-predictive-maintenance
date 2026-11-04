@@ -1,0 +1,161 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Design tokens.
+   Surfaces, ink and borders follow the house chart chrome (research/STYLE_GUIDE.md);
+   component structure follows the EasyUI site tokens (see design/reference). */
+:root {
+  color-scheme: light;
+  --bg: #f4f3ef;
+  --surface: #fcfcfb;
+  --surface-raised: #f6f5f2;
+  --surface-hover: #efeee9;
+  --border: rgba(11, 11, 11, 0.09);
+  --border-hover: rgba(11, 11, 11, 0.18);
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --accent: #2a78d6;
+  --accent-soft: rgba(42, 120, 214, 0.1);
+  --accent-ring: rgba(42, 120, 214, 0.55);
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.04), 0 12px 32px -20px rgba(11, 11, 11, 0.18);
+  --shadow-elevated: 0 1px 2px rgba(11, 11, 11, 0.06), 0 16px 40px -12px rgba(11, 11, 11, 0.22);
+
+  /* series colours: colour follows the model in every chart (validated, light surface) */
+  --m-ifs: #2a78d6;
+  --m-aifs: #eb6834;
+  --m-gfs: #1baf7a;
+  --m-blend: #0b0b0b;
+  --band: rgba(11, 11, 11, 0.08);
+
+  /* status colours: reserved, always with an icon and a word */
+  --good: #0ca30c;
+  --good-text: #006300;
+  --warning: #fab219;
+  --warning-text: #8a5a00;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+
+  /* sequential blue ramp for magnitude (heat map) */
+  --seq-0: #f0efec;
+  --seq-1: #cde2fb;
+  --seq-2: #9ec5f4;
+  --seq-3: #6da7ec;
+  --seq-4: #3987e5;
+  --seq-5: #256abf;
+  --seq-6: #184f95;
+  --seq-7: #0d366b;
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-raised: #222221;
+  --surface-hover: #2a2a28;
+  --border: rgba(255, 255, 255, 0.09);
+  --border-hover: rgba(255, 255, 255, 0.18);
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --accent: #3987e5;
+  --accent-soft: rgba(57, 135, 229, 0.16);
+  --accent-ring: rgba(57, 135, 229, 0.6);
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -20px rgba(0, 0, 0, 0.7);
+  --shadow-elevated: 0 1px 2px rgba(0, 0, 0, 0.5), 0 16px 40px -12px rgba(0, 0, 0, 0.8);
+
+  /* dark steps of the same hues, validated against #1a1a19 */
+  --m-ifs: #3987e5;
+  --m-aifs: #d95926;
+  --m-gfs: #199e70;
+  --m-blend: #f0efec;
+  --band: rgba(240, 239, 236, 0.1);
+
+  --good-text: #0ca30c;
+  --warning-text: #fab219;
+
+  --seq-0: #262624;
+  --seq-1: #0d366b;
+  --seq-2: #104281;
+  --seq-3: #184f95;
+  --seq-4: #256abf;
+  --seq-5: #3987e5;
+  --seq-6: #6da7ec;
+  --seq-7: #b7d3f6;
+}
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-hover: var(--surface-hover);
+  --color-line: var(--border);
+  --color-line-hover: var(--border-hover);
+  --color-ink: var(--text-primary);
+  --color-ink-2: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-ifs: var(--m-ifs);
+  --color-aifs: var(--m-aifs);
+  --color-gfs: var(--m-gfs);
+  --color-blend: var(--m-blend);
+  --color-good: var(--good);
+  --color-good-text: var(--good-text);
+  --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
+  --color-critical: var(--critical);
+  --shadow-card: var(--shadow-card);
+  --shadow-elevated: var(--shadow-elevated);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+/* EasyUI G1 focus ring, in the accent colour */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

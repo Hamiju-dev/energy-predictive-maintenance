@@ -218,3 +218,24 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Project-specific ---
+# Raw and processed data are never committed (downloaded by scripts/download_data.py)
+data/
+models/
+*.csv
+*.parquet
+*.zip
+*.bz2
+*.gz
+*.pkl
+*.joblib
+# Keep the API-key template
+!.env.example
+outputs/
+
+# Dashboard build
+dashboard/node_modules/
+dashboard/dist/
+dashboard/src/data/
+!dashboard/src/kit/lib/
